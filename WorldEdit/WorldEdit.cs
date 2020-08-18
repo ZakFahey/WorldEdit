@@ -539,7 +539,7 @@ namespace WorldEdit
 
 			if (!File.Exists(lockFilePathOldVersion))
 			{
-				Database.Query("DROP TABLE WorldEdit");
+				Database.Query("DROP TABLE IF EXISTS WorldEdit");
 				foreach (var file in Directory.EnumerateFiles(WorldEditFolderName, "undo-*.dat"))
 				{
 					File.Delete(file);
