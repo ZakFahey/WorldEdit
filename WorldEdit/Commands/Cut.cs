@@ -14,6 +14,8 @@ namespace WorldEdit.Commands
 
 		public override void Execute()
 		{
+			if (!CanUseCommand()) { return; }
+
 			foreach (string fileName in Directory.EnumerateFiles("worldedit", string.Format("redo-{0}-*.dat", plr.Account.ID)))
 				File.Delete(fileName);
 

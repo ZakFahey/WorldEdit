@@ -13,6 +13,8 @@ namespace WorldEdit.Commands
 
 		public override void Execute()
 		{
+			if (!CanUseCommand()) { return; }
+
 			string clipboardPath = Tools.GetClipboardPath(plr.Account.ID);
 			
 			Tools.SaveWorldSection(x, y, x2, y2, save ?? clipboardPath);
