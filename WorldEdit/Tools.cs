@@ -12,6 +12,7 @@ using Terraria.DataStructures;
 using Microsoft.Xna.Framework;
 using Terraria.ID;
 using System.Threading;
+using WorldEdit.Commands;
 
 namespace WorldEdit
 {
@@ -649,7 +650,7 @@ namespace WorldEdit
 			File.Delete(Path.Combine("worldedit", string.Format("undo-{0}-{1}.dat", plr.Account.ID, undoLevel - MAX_UNDOS)));
 		}
 
-		public static bool Redo(int accountID)
+		public static bool Redo(int accountID, WECommand command = null)
         {
             if (WorldEdit.Config.DisableUndoSystemForUnrealPlayers && accountID == 0)
                 return false;
@@ -676,10 +677,13 @@ namespace WorldEdit
 			if (!File.Exists(redoPath))
 				return false;
 
-			string undoPath = Path.Combine("worldedit", string.Format("undo-{0}-{1}.dat", accountID, undoLevel));
+            Rectangle size = ReadSize(redoPath);
+            if (!command.CanUseCommand(size.Left, size.Top, size.Right, size.Bottom))
+                return false;
+
+            string undoPath = Path.Combine("worldedit", string.Format("undo-{0}-{1}.dat", accountID, undoLevel));
 			WorldEdit.Database.Query("UPDATE WorldEdit SET UndoLevel = @0 WHERE Account = @1", undoLevel, accountID);
 
-            Rectangle size = ReadSize(redoPath);
             SaveWorldSection(Math.Max(0, size.X), Math.Max(0, size.Y),
                 Math.Min(size.X + size.Width - 1, Main.maxTilesX - 1),
                 Math.Min(size.Y + size.Height - 1, Main.maxTilesY - 1), undoPath);
@@ -766,7 +770,7 @@ namespace WorldEdit
 			return data;
 		}
 
-		public static bool Undo(int accountID)
+		public static bool Undo(int accountID, WECommand command = null)
         {
             if (WorldEdit.Config.DisableUndoSystemForUnrealPlayers && accountID == 0)
                 return false;
@@ -786,16 +790,19 @@ namespace WorldEdit
 			if (undoLevel < -1)
 				return false;
 
-			string undoPath = Path.Combine("worldedit", string.Format("undo-{0}-{1}.dat", accountID, undoLevel + 1));
+            string undoPath = Path.Combine("worldedit", string.Format("undo-{0}-{1}.dat", accountID, undoLevel + 1));
 			WorldEdit.Database.Query("UPDATE WorldEdit SET UndoLevel = @0 WHERE Account = @1", undoLevel, accountID);
 
 			if (!File.Exists(undoPath))
 				return false;
 
-			string redoPath = Path.Combine("worldedit", string.Format("redo-{0}-{1}.dat", accountID, redoLevel));
+            Rectangle size = ReadSize(undoPath);
+            if (!command.CanUseCommand(size.Left, size.Top, size.Right, size.Bottom))
+                return false;
+
+            string redoPath = Path.Combine("worldedit", string.Format("redo-{0}-{1}.dat", accountID, redoLevel));
 			WorldEdit.Database.Query("UPDATE WorldEdit SET RedoLevel = @0 WHERE Account = @1", redoLevel, accountID);
 
-            Rectangle size = ReadSize(undoPath);
             SaveWorldSection(Math.Max(0, size.X), Math.Max(0, size.Y),
                 Math.Min(size.X + size.Width - 1, Main.maxTilesX - 1),
                 Math.Min(size.Y + size.Height - 1, Main.maxTilesY - 1), redoPath);

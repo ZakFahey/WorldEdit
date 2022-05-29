@@ -24,7 +24,7 @@ namespace WorldEdit.Commands
             }
 
             int i = -1;
-			while (++i < steps && Tools.Redo(accountID)) ;
+			while (++i < steps && Tools.Redo(accountID, this)) ;
 			if (i == 0)
 				plr.SendErrorMessage("Failed to redo any actions.");
 			else

@@ -24,7 +24,7 @@ namespace WorldEdit.Commands
             }
 
 			int i = -1;
-			while (++i < steps && Tools.Undo(accountID)) ;
+			while (++i < steps && Tools.Undo(accountID, this)) ;
 			if (i == 0)
 				plr.SendErrorMessage("Failed to undo any actions.");
 			else
