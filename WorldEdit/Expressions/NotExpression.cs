@@ -1,5 +1,4 @@
-﻿using OTAPI.Tile;
-
+﻿using Terraria;
 namespace WorldEdit.Expressions
 {
 	public class NotExpression : Expression
