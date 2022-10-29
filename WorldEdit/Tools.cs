@@ -9,8 +9,6 @@ using TShockAPI.DB;
 using Terraria.GameContent.Tile_Entities;
 using Terraria.DataStructures;
 using Microsoft.Xna.Framework;
-using Terraria.ID;
-using System.Threading;
 using WorldEdit.Commands;
 
 namespace WorldEdit
@@ -20,12 +18,10 @@ namespace WorldEdit
         internal const int BUFFER_SIZE = 1048576;
         internal static int MAX_UNDOS;
 
-        private static int TranslateTempCounter = 0;
         private static Random rnd = new Random();
         public static bool TranslateFrom140To144(string path, bool logError, string tempCopyPath = null)
         {
-            string tempPath = tempCopyPath ?? Path.Combine(WorldEdit.WorldEditFolderName,
-                $"temp-{rnd.Next()}-{Interlocked.Increment(ref TranslateTempCounter)}.dat");
+            string tempPath = tempCopyPath ?? Path.Combine(WorldEdit.WorldEditFolderName, $"temp-{rnd.NextInt64()}.dat");
             File.Copy(path, tempPath, true);
             
             bool translated = true;
@@ -45,8 +41,7 @@ namespace WorldEdit
         }
         public static bool TranslateFromPre140To144(string path, bool logError, string tempCopyPath = null)
         {
-            string tempPath = tempCopyPath ?? Path.Combine(WorldEdit.WorldEditFolderName,
-                $"temp-{rnd.Next()}-{Interlocked.Increment(ref TranslateTempCounter)}.dat");
+            string tempPath = tempCopyPath ?? Path.Combine(WorldEdit.WorldEditFolderName, $"temp-{rnd.NextInt64()}.dat");
             File.Copy(path, tempPath, true);
             
             bool translated = true;
