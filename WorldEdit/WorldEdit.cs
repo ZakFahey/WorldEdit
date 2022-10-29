@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Microsoft.Xna.Framework;
 using MySql.Data.MySqlClient;
@@ -277,8 +278,8 @@ namespace WorldEdit
 		{
 			if (!File.Exists(lockFilePath_Update_1_4))
 			{
-				foreach (string f in Directory.EnumerateFiles(WorldEditFolderName, "*.dat"))
-					Tools.TranslateFromPre140To144(f, true);
+				string[] files = Directory.GetFiles(WorldEditFolderName, "*.dat");
+				Parallel.ForEach(files, f => Tools.TranslateFromPre140To144(f, true));
 				File.Create(lockFilePath_Update_1_4).Close();
 				File.Create(lockFilePath_Update_1_4_4).Close();
 				TShock.Log.ConsoleInfo("WorldEdit updated undo/redo/clipboard/schematic files to Terraria v1.4.4.");
@@ -286,8 +287,8 @@ namespace WorldEdit
 			}
 			if (!File.Exists(lockFilePath_Update_1_4_4))
 			{
-				foreach (string f in Directory.EnumerateFiles(WorldEditFolderName, "*.dat"))
-					Tools.TranslateFrom140To144(f, true);
+				string[] files = Directory.GetFiles(WorldEditFolderName, "*.dat");
+				Parallel.ForEach(files, f => Tools.TranslateFrom140To144(f, true));
 				File.Create(lockFilePath_Update_1_4_4).Close();
 				TShock.Log.ConsoleInfo("WorldEdit updated undo/redo/clipboard/schematic files to Terraria v1.4.4.");
 				TShock.Log.ConsoleInfo("Do not delete 1.4.4.lock inside worldedit folder; this message will only show once.");
