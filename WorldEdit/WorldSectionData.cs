@@ -305,9 +305,11 @@ namespace WorldEdit
 		}
 
 		public void WriteHeader(BinaryWriter writer)
-		{
-			writer.Write(X);
-			writer.Write(Y);
+        {
+            writer.Write((int)3);
+            writer.Write((int)0);
+            writer.Write(X);
+            writer.Write(Y);
 			writer.Write(Width);
 			writer.Write(Height);
 		}
@@ -316,8 +318,10 @@ namespace WorldEdit
 		{
 			Stream stream = File.Open(filePath, FileMode.Create);
 			using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
-			{
-				writer.Write(x);
+            {
+                writer.Write((int)3);
+                writer.Write((int)0);
+                writer.Write(x);
 				writer.Write(y);
 				writer.Write(width);
 				writer.Write(height);
