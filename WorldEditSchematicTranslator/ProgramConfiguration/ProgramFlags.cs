@@ -4,7 +4,8 @@ internal partial class Program
 {
     private readonly record struct ProgramFlags(bool DoLog, bool Exit,
         bool UseFailExitCode, string? DirectFile, string? TempDirectory,
-        string? FromVersion, SearchOption SearchOption, bool DeleteOldFiles)
+        string? FromVersion, SearchOption SearchOption, bool DeleteOldFiles,
+        bool Continuous, string? OutputDirectory)
     {
         public ProgramFlags(string[] Args) : this(!Args.Contains("-nolog"),
                                                    Args.Contains("-exit"),
@@ -15,7 +16,9 @@ internal partial class Program
                                                   (Args.Contains("-topdirectoryonly")
                                                     ? SearchOption.TopDirectoryOnly
                                                     : SearchOption.AllDirectories),
-                                                  !Args.Contains("-keepallfiles")) { }
+                                                  !Args.Contains("-keepallfiles"),
+                                                   Args.Contains("-continuous"),
+                                                   GetValue(Args, "-out")) { }
         private static string? GetValue(string[] Args, string Flag)
         {
             int flagIndex = Array.IndexOf(Args, Flag);
