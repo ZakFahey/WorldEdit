@@ -276,27 +276,7 @@ namespace WorldEdit
 		private string lockFilePath_Update_1_4_4 = Path.Combine(WorldEditFolderName, "1.4.4.lock");
 		private void OnPostInitialize(EventArgs e)
 		{
-			if (!File.Exists(lockFilePath_Update_1_4))
-			{
-				string[] files = Directory.GetFiles(WorldEditFolderName, "*.dat", SearchOption.AllDirectories);
-				int counter = 0;
-                TShock.Log.ConsoleInfo("Updating WorldEdit schematics to the latest version. Do not close this window!");
-                Parallel.ForEach(files, f => Tools.TranslateFromPre140To144(f, true, files.Length, ref counter));
-				File.Create(lockFilePath_Update_1_4).Close();
-				File.Create(lockFilePath_Update_1_4_4).Close();
-				TShock.Log.ConsoleInfo("WorldEdit updated undo/redo/clipboard/schematic files to Terraria v1.4.4.");
-				TShock.Log.ConsoleInfo("Do not delete 1.4.4.lock or 1.4.0.lock inside worldedit folder; this message will only show once.");
-			}
-			if (!File.Exists(lockFilePath_Update_1_4_4))
-			{
-				string[] files = Directory.GetFiles(WorldEditFolderName, "*.dat", SearchOption.AllDirectories);
-                int counter = 0;
-                TShock.Log.ConsoleInfo("Updating WorldEdit schematics to the latest version. Do not close this window!");
-                Parallel.ForEach(files, f => Tools.TranslateFrom140To144(f, true, files.Length, ref counter));
-				File.Create(lockFilePath_Update_1_4_4).Close();
-				TShock.Log.ConsoleInfo("WorldEdit updated undo/redo/clipboard/schematic files to Terraria v1.4.4.");
-				TShock.Log.ConsoleInfo("Do not delete 1.4.4.lock inside worldedit folder; this message will only show once.");
-			}
+#warning TODO: run translator
 		}
 		private void OnInitialize(EventArgs e)
 		{
@@ -2035,26 +2015,6 @@ namespace WorldEdit
 			string subCmd = e.Parameters.Count == 0 ? "help" : e.Parameters[0].ToLowerInvariant();
 			switch (subCmd)
 			{
-				case "to1.4":
-				case "translate1.4":
-					{
-						if (!e.Player.HasPermission("worldedit.schematic.translate"))
-						{
-							e.Player.SendErrorMessage("You do not have permission to translate schematics.");
-							return;
-						}
-
-						string path = Path.Combine(WorldEditFolderName, string.Format(fileFormat, e.Parameters[1]));
-
-                        int counter = 0;
-                        if (!File.Exists(path))
-							e.Player.SendErrorMessage("Invalid schematic '{0}'!", e.Parameters[1]);
-						else if (!Tools.TranslateFromPre140To144(path, true, 1, ref counter))
-							e.Player.SendErrorMessage("Could not translate schematic. Check logs for more info.");
-						else
-							e.Player.SendSuccessMessage("Translated schematic '{0}'.", e.Parameters[1]);
-					}
-				return;
 				case "del":
 				case "delete":
                     {

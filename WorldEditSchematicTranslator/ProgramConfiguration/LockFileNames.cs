@@ -20,11 +20,4 @@ internal partial class Program
             [V3_0] = null
         };
     }
-    private static void InitializeLockFilePaths(out string CurrentDirectory)
-    {
-        string dir = CurrentDirectory = Environment.CurrentDirectory;
-        LockFilePaths = LockFileNames.ToDictionary(k => k.Key,
-                                                   v => ((v.Value is null) ? null
-                                                                           : Path.Combine(dir, v.Value)));
-    }
 }

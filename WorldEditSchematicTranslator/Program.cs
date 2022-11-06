@@ -1,6 +1,6 @@
 ﻿#region Using
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.IO.Compression;
 using System.Text;
 #pragma warning disable IDE0004 // unneded cast, but i prefer explicit BinaryWriter usage
@@ -19,11 +19,29 @@ internal partial class Program
         InitializeLockFileNames();
     }
 
-    public static int Main(string[] Args)
+    public static async Task<int> Main(string[] Args)
     {
-        InitializeLockFilePaths(out string dir);
+        Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal;
+        string dir = Environment.CurrentDirectory;
         ProgramFlags flags = new(Args);
         string tempDir = GetTempDirectory(dir, flags.TempDirectory);
+
+        if (flags.OutputDirectory is not null)
+        {
+            try { Path.GetFullPath(flags.OutputDirectory); }
+            catch
+            {
+                Console.Error.WriteLine("[WorldEdit] Invalid output directory.");
+                Environment.Exit(EXIT_CODE_INVALID_OUT_DIR);
+            }
+        }
+        if (flags.Continuous && ((flags.OutputDirectory is null)
+                                || Path.GetFullPath(dir) == Path.GetFullPath(flags.OutputDirectory)))
+        {
+            Console.Error.WriteLine("[WorldEdit] When setting the -continuous flag you must set -out to " +
+                "a directory other than the current directory.");
+            Environment.Exit(EXIT_CODE_CONTINUOUS_WITHOUT_OUT_DIR);
+        }
 
         if (!GetFromVersion(flags.FromVersion, out Version? fromVersion))
         {
@@ -47,17 +65,38 @@ internal partial class Program
                     CheckLastVersionLock(flags.DoLog, flags.Exit);
             }
         }
-        List<FileInfo> files = new();
-        bool doDirectFile = true;
-        if (flags.DirectFile is not string directFile)
+
+        int failCounter;
+        do
         {
-            doDirectFile = false;
-            files.AddRange(GetDirectoryFiles(dir, SCHEMATIC_PREFIX, flags.SearchOption));
-            if (!TryDeleteOldFiles(dir, flags.DeleteOldFiles))
+            TranslateLoop(flags, fromVersion, dir, tempDir, out failCounter);
+            if (flags.Continuous)
             {
-                files.AddRange(GetDirectoryFiles(dir, UNDO_PREFIX, flags.SearchOption));
-                files.AddRange(GetDirectoryFiles(dir, REDO_PREFIX, flags.SearchOption));
-                files.AddRange(GetDirectoryFiles(dir, CLIPBOARD_PREFIX, flags.SearchOption));
+                await Task.Delay(2000);
+            }
+        } while (flags.Continuous);
+
+        return Exit(flags.Exit, flags.UseFailExitCode, failCounter);
+    }
+
+    #region TranslateLoop
+
+    private static void TranslateLoop(ProgramFlags Flags, Version FromVersion,
+        string DirectoryPath, string TempDirectoryPath, out int FailCounter)
+    {
+        List<FileInfo> files = new();
+        if (Flags.DirectFile is not string directFile)
+        {
+            files.AddRange(
+                GetDirectoryFiles(DirectoryPath, SCHEMATIC_PREFIX, Flags.OutputDirectory, Flags.SearchOption));
+            if (!TryDeleteOldFiles(DirectoryPath, Flags.DeleteOldFiles))
+            {
+                files.AddRange(
+                    GetDirectoryFiles(DirectoryPath, UNDO_PREFIX, Flags.OutputDirectory, Flags.SearchOption));
+                files.AddRange(
+                    GetDirectoryFiles(DirectoryPath, REDO_PREFIX, Flags.OutputDirectory, Flags.SearchOption));
+                files.AddRange(
+                    GetDirectoryFiles(DirectoryPath, CLIPBOARD_PREFIX, Flags.OutputDirectory, Flags.SearchOption));
             }
         }
         else
@@ -65,27 +104,32 @@ internal partial class Program
 
         int totalCounter = files.Count, currCounter = 0, okCounter = 0, failCounter = 0;
         ulong totalSize = 0, currentSize = 0, lastSizeLog = 0;
+
         foreach (FileInfo file in files)
             totalSize += (ulong)file.Length;
         ulong logSize = ((totalSize < 100) ? 1 : (totalSize / 100));
 
-        if (!doDirectFile)
-            Console.Out.WriteLine($"[WorldEdit] Updating {files.Count} files from version {fromVersion} " +
+        if (Flags.DirectFile is null)
+            Console.Out.WriteLine($"[WorldEdit] Updating {files.Count} files from version {FromVersion} " +
                                   $"to {LastVersion}. Do not close this window!");
-        Parallel.ForEach(files, (f => Translate(f, flags.DoLog, totalCounter, ref currCounter,
+        Parallel.ForEach(files, (f => Translate(f, Flags.DoLog, totalCounter, ref currCounter,
                                                 ref okCounter, ref failCounter, logSize, ref lastSizeLog,
-                                                ref currentSize, tempDir, fromVersion)));
-        if (flags.DoLog && !doDirectFile)
-            Console.Out.WriteLine($"[WorldEdit] Updated {okCounter} files from version {fromVersion} " +
+                                                ref currentSize, TempDirectoryPath, FromVersion,
+                                                DirectoryPath, Flags.OutputDirectory)));
+        if (Flags.DoLog && (Flags.DirectFile is null))
+            Console.Out.WriteLine($"[WorldEdit] Updated {okCounter} files from version {FromVersion} " +
                                   $"to {LastVersion}." + ((failCounter > 0)
                                                             ? $" Failed to update {failCounter} files."
                                                             : string.Empty));
 
-        if (!doDirectFile)
+        if (Flags.DirectFile is null)
             foreach (Version version in History.Keys)
-                CreateLock(version);
-        return Exit(flags.Exit, flags.UseFailExitCode, failCounter);
+                CreateLock((Flags.OutputDirectory ?? DirectoryPath), version);
+
+        FailCounter = failCounter;
     }
+
+    #endregion
     #region GetTempDirectory
 
     private static string GetTempDirectory(string CurrentDirectory, string? TempDirectory)
@@ -133,9 +177,26 @@ internal partial class Program
     #region GetDirectoryFiles
 
     private static IEnumerable<FileInfo> GetDirectoryFiles(string DirectoryPath,
-            string FilePrefix, SearchOption SearchOption) =>
-        Directory.EnumerateFiles(DirectoryPath, $"{FilePrefix}*.dat", SearchOption)
-                 .Select(f => new FileInfo(f));
+        string FilePrefix, string? OutDir, SearchOption SearchOption)
+    {
+        var files = Directory.EnumerateFiles(DirectoryPath, $"{FilePrefix}*.dat", SearchOption);
+        if (OutDir is not null)
+        {
+            string dirPath = Path.GetFullPath(DirectoryPath);
+            string outDir = Path.GetFullPath(OutDir);
+            if (dirPath != outDir)
+            {
+                // Skip schematics that have already been translated unless the original version is newer
+                files = files.Where(file =>
+                {
+                    string newFile = Path.GetFullPath(file).Replace(dirPath, outDir);
+                    return (!File.Exists(newFile)
+                         || (File.GetLastWriteTimeUtc(file) > File.GetLastWriteTimeUtc(newFile)));
+                });
+            }
+        }
+        return files.Select(f => new FileInfo(f));
+    }
 
     #endregion
     #region TryDeleteOldFiles
@@ -191,10 +252,13 @@ internal partial class Program
     #endregion
     #region CreateLock
 
-    private static void CreateLock(Version Version)
+    private static void CreateLock(string DirectoryPath, Version Version)
     {
         string? lockPath = LockFilePaths[Version];
-        if ((lockPath is null) || File.Exists(lockPath))
+        if (lockPath is null)
+            return;
+        lockPath = Path.Combine(DirectoryPath, lockPath);
+        if (File.Exists(lockPath))
             return;
         if (LockFileContent[Version] is not string content)
         {
@@ -228,7 +292,8 @@ internal partial class Program
 
     private static void Translate(FileInfo FileInfo, bool DoLog, int TotalFilesCount,
         ref int CurrentCounter, ref int OKCounter, ref int FailCounter, ulong LogSize,
-        ref ulong LastSizeLog, ref ulong CurrentFileSize, string TempDirectory, Version FromVersion)
+        ref ulong LastSizeLog, ref ulong CurrentFileSize, string TempDirectory, Version FromVersion,
+        string FromDirectory, string? OutDirectory)
     {
         string tempPath;
         do tempPath = Path.Combine(TempDirectory, $"temp-{Random.Shared.NextInt64()}.dat");
@@ -239,44 +304,59 @@ internal partial class Program
         {
             using Stream inRawStream = File.OpenRead(FileInfo.FullName);
             using Stream outRawStream = File.Open(tempPath, FileMode.Create);
-            using GZipStream inZipStream = new(inRawStream, CompressionMode.Decompress);
-            using BufferedStream inBufferedStream = new(inZipStream, BUFFER_SIZE);
-            
+            GZipStream inZipStream;
+            BufferedStream inBufferedStream;
+
             Header header = null!;
-            using (BinaryReader headerReader = new((HeaderZipped[FromVersion] ? inBufferedStream
-                                                                              : inRawStream),
-                                                   Encoding.UTF8, leaveOpen: true))
+            if (HeaderZipped[FromVersion])
+            {
+                inZipStream = new(inRawStream, CompressionMode.Decompress);
+                inBufferedStream = new(inZipStream, BUFFER_SIZE);
+                using BinaryReader headerReader = new(inBufferedStream, Encoding.UTF8, leaveOpen: true);
+                header = ReadHeader[FromVersion](FromVersion, headerReader);
+            }
+            else
+            {
+                using BinaryReader headerReader = new(inRawStream, Encoding.UTF8, leaveOpen: true);
+                header = ReadHeader[FromVersion](FromVersion, headerReader);
+                inZipStream = new(inRawStream, CompressionMode.Decompress);
+                inBufferedStream = new(inZipStream, BUFFER_SIZE);
+            }
             using (BinaryWriter headerWriter = new(outRawStream, Encoding.UTF8, leaveOpen: true))
-                (header = ReadHeader[FromVersion](FromVersion, headerReader)).Write(headerWriter);
+                header.Write(headerWriter);
 
-            using BinaryReader dataReader = new(inBufferedStream, Encoding.UTF8);
-            using GZipStream outZipStream = new(outRawStream, CompressionMode.Compress);
-            using BufferedStream outBufferedStream = new(outZipStream, BUFFER_SIZE);
-            using BinaryWriter dataWriter = new(outBufferedStream, Encoding.UTF8);
-            for (int i = 0; i < header.Width; i++)
-                for (int j = 0; j < header.Height; j++)
-                {
-                    Tile tile = ReadTile[FromVersion](dataReader);
-
-                    dataWriter.Write((ushort)tile.sTileHeader);
-                    dataWriter.Write((byte)tile.bTileHeader);
-                    dataWriter.Write((byte)tile.bTileHeader2);
-
-                    if (tile.active())
+            using (inZipStream)
+            using (inBufferedStream)
+            using (BinaryReader dataReader = new(inBufferedStream, Encoding.UTF8))
+            using (GZipStream outZipStream = new(outRawStream, CompressionMode.Compress))
+            using (BufferedStream outBufferedStream = new(outZipStream, BUFFER_SIZE))
+            using (BinaryWriter dataWriter = new(outBufferedStream, Encoding.UTF8))
+            {
+                for (int i = 0; i < header.Width; i++)
+                    for (int j = 0; j < header.Height; j++)
                     {
-                        dataWriter.Write((ushort)tile.type);
-                        if (TileFrameImportant[LastVersion][tile.type])
-                        {
-                            dataWriter.Write((short)tile.frameX);
-                            dataWriter.Write((short)tile.frameY);
-                        }
-                    }
-                    dataWriter.Write((ushort)tile.wall);
-                    dataWriter.Write((byte)tile.liquid);
-                }
+                        Tile tile = ReadTile[FromVersion](dataReader);
 
-            foreach (EntityReaderState state in ReadEntities[FromVersion](dataReader))
-                state.Write(dataWriter);
+                        dataWriter.Write((ushort)tile.sTileHeader);
+                        dataWriter.Write((byte)tile.bTileHeader);
+                        dataWriter.Write((byte)tile.bTileHeader2);
+
+                        if (tile.active())
+                        {
+                            dataWriter.Write((ushort)tile.type);
+                            if (TileFrameImportant[LastVersion][tile.type])
+                            {
+                                dataWriter.Write((short)tile.frameX);
+                                dataWriter.Write((short)tile.frameY);
+                            }
+                        }
+                        dataWriter.Write((ushort)tile.wall);
+                        dataWriter.Write((byte)tile.liquid);
+                    }
+
+                foreach (EntityReaderState state in ReadEntities[FromVersion](dataReader))
+                    state.Write(dataWriter);
+            }
         }
         catch (Exception e)
         {
@@ -286,10 +366,25 @@ internal partial class Program
             translated = false;
         }
 
+        string newFilePath = FileInfo.FullName;
+        if (translated && (OutDirectory is not null))
+        {
+            newFilePath = Path.GetFullPath(newFilePath)
+                              .Replace(Path.GetFullPath(FromDirectory), Path.GetFullPath(OutDirectory));
+            try { Directory.CreateDirectory(Path.GetDirectoryName(newFilePath)!); }
+            catch (Exception ex)
+            {
+                if (DoLog)
+                    Console.Error.WriteLine($"[WorldEdit] Directory '{newFilePath}' " +
+                        $"could not be created:\n{ex}");
+                translated = false;
+            }
+        }
+
         if (translated)
         {
             OKCounter++;
-            File.Move(tempPath, FileInfo.FullName, true);
+            File.Move(tempPath, newFilePath, true);
         }
         else
         {
