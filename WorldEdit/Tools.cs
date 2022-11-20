@@ -101,6 +101,9 @@ namespace WorldEdit
         public static Rectangle ReadSize(Stream stream)
         {
             using (var reader = new BinaryReader(stream))
+            {
+                reader.ReadInt32(); // Version
+                reader.ReadInt32();
                 return new Rectangle
                 (
                     reader.ReadInt32(),
@@ -108,6 +111,7 @@ namespace WorldEdit
                     reader.ReadInt32(),
                     reader.ReadInt32()
                 );
+            }
         }
 
         public static Rectangle ReadSize(string path) =>
