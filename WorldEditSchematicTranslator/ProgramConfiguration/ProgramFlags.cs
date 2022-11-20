@@ -5,7 +5,7 @@ internal partial class Program
     private readonly record struct ProgramFlags(bool DoLog, bool Exit,
         bool UseFailExitCode, string? DirectFile, string? TempDirectory,
         string? FromVersion, SearchOption SearchOption, bool DeleteOldFiles,
-        bool Continuous, string? OutputDirectory)
+        bool Continuous, string? OutputDirectory, string? FromDirectory)
     {
         public ProgramFlags(string[] Args) : this(!Args.Contains("-nolog"),
                                                    Args.Contains("-exit"),
@@ -18,7 +18,8 @@ internal partial class Program
                                                     : SearchOption.AllDirectories),
                                                   !Args.Contains("-keepallfiles"),
                                                    Args.Contains("-continuous"),
-                                                   GetValue(Args, "-out")) { }
+                                                   GetValue(Args, "-out"),
+                                                   GetValue(Args, "-directory")) { }
         private static string? GetValue(string[] Args, string Flag)
         {
             int flagIndex = Array.IndexOf(Args, Flag);
