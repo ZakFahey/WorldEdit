@@ -243,7 +243,8 @@ namespace WorldEdit
             {
                 sTileHeader = reader.ReadUInt16(),
                 bTileHeader = reader.ReadByte(),
-                bTileHeader2 = reader.ReadByte()
+                bTileHeader2 = reader.ReadByte(),
+                bTileHeader3 = reader.ReadByte()
             };
 
             // Tile type
@@ -610,34 +611,34 @@ namespace WorldEdit
 
 		public static void Write(this BinaryWriter writer, ITile tile)
 		{
-			writer.Write(tile.sTileHeader);
-			writer.Write(tile.bTileHeader);
-			writer.Write(tile.bTileHeader2);
-			writer.Write(tile.bTileHeader3);
+			writer.Write((ushort)tile.sTileHeader);
+			writer.Write((byte)tile.bTileHeader);
+			writer.Write((byte)tile.bTileHeader2);
+			writer.Write((byte)tile.bTileHeader3);
 
 			if (tile.active())
 			{
-				writer.Write(tile.type);
+				writer.Write((ushort)tile.type);
 				if (Main.tileFrameImportant[tile.type])
 				{
-					writer.Write(tile.frameX);
-					writer.Write(tile.frameY);
+					writer.Write((short)tile.frameX);
+					writer.Write((short)tile.frameY);
 				}
 			}
-			writer.Write(tile.wall);
-			writer.Write(tile.liquid);
+			writer.Write((ushort)tile.wall);
+			writer.Write((byte)tile.liquid);
 		}
 
         public static void Write(this BinaryWriter writer, NetItem item)
         {
-            writer.Write(item.NetId);
-            writer.Write(item.Stack);
-            writer.Write(item.PrefixId);
+            writer.Write((int)item.NetId);
+            writer.Write((int)item.Stack);
+            writer.Write((byte)item.PrefixId);
         }
 
         internal static void Write(this BinaryWriter writer, NetItem[] items)
         {
-            writer.Write(items.Length);
+            writer.Write((int)items.Length);
             foreach (NetItem item in items)
                 writer.Write(item);
         }

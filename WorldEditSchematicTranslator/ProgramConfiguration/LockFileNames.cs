@@ -16,7 +16,7 @@ internal partial class Program
         LockFileContent = new()
         {
             [V1_0] = null,
-            [V2_0] = "1.4.4-with-version",
+            [V2_0] = "Terraria_V1.4.4.9",
             [V3_0] = null
         };
     }

@@ -42,6 +42,17 @@ internal partial class Program
                 bTileHeader2 = br.ReadByte()
             };
 
+            if (tile.active() && (tile.color() == OLD_ILLUMINANT_PAINT_ID))
+            {
+                tile.color(0);
+                tile.fullbrightBlock(true);
+            }
+            if (tile.wallColor() == OLD_ILLUMINANT_PAINT_ID)
+            {
+                tile.wallColor(0);
+                tile.fullbrightWall(true);
+            }
+
             if (tile.active())
             {
                 tile.type = br.ReadUInt16();
@@ -65,7 +76,8 @@ internal partial class Program
             {
                 sTileHeader = br.ReadUInt16(),
                 bTileHeader = br.ReadByte(),
-                bTileHeader2 = br.ReadByte()
+                bTileHeader2 = br.ReadByte(),
+                bTileHeader3 = br.ReadByte()
             };
 
             if (tile.active())

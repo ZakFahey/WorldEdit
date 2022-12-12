@@ -22,8 +22,8 @@ internal partial class Program
     public static async Task<int> Main(string[] Args)
     {
         Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal;
-        string dir = Environment.CurrentDirectory;
         ProgramFlags flags = new(Args);
+        string dir = flags.FromDirectory ?? Environment.CurrentDirectory;
         string tempDir = GetTempDirectory(dir, flags.TempDirectory);
 
         if (flags.OutputDirectory is not null)

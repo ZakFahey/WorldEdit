@@ -246,45 +246,45 @@ namespace WorldEdit
 		{
 			for (int i = 0; i < Width; i++)
 				for (int j = 0; j < Height; j++)
-					writer.Write(Tiles[i, j]);
+					writer.Write((ITile)Tiles[i, j]);
 
-			writer.Write(Signs.Count);
+			writer.Write((int)Signs.Count);
 			foreach (var sign in Signs)
 				sign.Write(writer);
 
-			writer.Write(Chests.Count);
+			writer.Write((int)Chests.Count);
 			foreach (var chest in Chests)
 				chest.Write(writer);
 
-			writer.Write(ItemFrames.Count);
+			writer.Write((int)ItemFrames.Count);
 			foreach (var itemFrame in ItemFrames)
 				itemFrame.Write(writer);
 
-            writer.Write(LogicSensors.Count);
+            writer.Write((int)LogicSensors.Count);
             foreach (var logicSensor in LogicSensors)
 				logicSensor.Write(writer);
 
-            writer.Write(TrainingDummies.Count);
+            writer.Write((int)TrainingDummies.Count);
 			foreach (var targetDummy in TrainingDummies)
 				targetDummy.Write(writer);
 
-			writer.Write(WeaponsRacks.Count);
+			writer.Write((int)WeaponsRacks.Count);
 			foreach (var weaponRack in WeaponsRacks)
 				weaponRack.Write(writer);
 
-			writer.Write(TeleportationPylons.Count);
+			writer.Write((int)TeleportationPylons.Count);
 			foreach (var teleportationPylon in TeleportationPylons)
 				teleportationPylon.Write(writer);
 
-			writer.Write(DisplayDolls.Count);
+			writer.Write((int)DisplayDolls.Count);
 			foreach (var displayDoll in DisplayDolls)
 				displayDoll.Write(writer);
 
-			writer.Write(HatRacks.Count);
+			writer.Write((int)HatRacks.Count);
 			foreach (var hatRack in HatRacks)
 				hatRack.Write(writer);
 
-			writer.Write(FoodPlatters.Count);
+			writer.Write((int)FoodPlatters.Count);
 			foreach (var foodPlatter in FoodPlatters)
 				foodPlatter.Write(writer);
 		}
@@ -308,10 +308,10 @@ namespace WorldEdit
         {
             writer.Write((int)3);
             writer.Write((int)0);
-            writer.Write(X);
-            writer.Write(Y);
-			writer.Write(Width);
-			writer.Write(Height);
+            writer.Write((int)X);
+            writer.Write((int)Y);
+			writer.Write((int)Width);
+			writer.Write((int)Height);
 		}
 
 		public static BinaryWriter WriteHeader(string filePath, int x, int y, int width, int height)
@@ -321,10 +321,10 @@ namespace WorldEdit
             {
                 writer.Write((int)3);
                 writer.Write((int)0);
-                writer.Write(x);
-				writer.Write(y);
-				writer.Write(width);
-				writer.Write(height);
+                writer.Write((int)x);
+				writer.Write((int)y);
+				writer.Write((int)width);
+				writer.Write((int)height);
 			}
 			return new BinaryWriter(
 					new BufferedStream(
@@ -341,9 +341,9 @@ namespace WorldEdit
 
 			public void Write(BinaryWriter writer)
 			{
-				writer.Write(X);
-				writer.Write(Y);
-				writer.Write(Item);
+				writer.Write((int)X);
+				writer.Write((int)Y);
+				writer.Write((NetItem)Item);
 			}
 
 			public static DisplayItemData Read(BinaryReader reader) =>
@@ -367,10 +367,10 @@ namespace WorldEdit
 
 			public void Write(BinaryWriter writer)
 			{
-				writer.Write(X);
-				writer.Write(Y);
-				writer.Write(Items);
-				writer.Write(Dyes);
+				writer.Write((int)X);
+				writer.Write((int)Y);
+				writer.Write((NetItem[])Items);
+				writer.Write((NetItem[])Dyes);
 			}
 
 			public static DisplayItemsData Read(BinaryReader reader) =>
@@ -391,8 +391,8 @@ namespace WorldEdit
 
 			public void Write(BinaryWriter writer)
 			{
-				writer.Write(X);
-				writer.Write(Y);
+				writer.Write((int)X);
+				writer.Write((int)Y);
 			}
 
 			public static PositionData Read(BinaryReader reader) =>
@@ -413,8 +413,8 @@ namespace WorldEdit
 
 			public void Write(BinaryWriter writer)
 			{
-				writer.Write(X);
-				writer.Write(Y);
+				writer.Write((int)X);
+				writer.Write((int)Y);
 				writer.Write((int)Type);
 			}
 
@@ -437,9 +437,9 @@ namespace WorldEdit
 
 			public void Write(BinaryWriter writer)
 			{
-				writer.Write(X);
-				writer.Write(Y);
-				writer.Write(Items);
+				writer.Write((int)X);
+				writer.Write((int)Y);
+				writer.Write((NetItem[])Items);
 			}
 
 			public static ChestData Read(BinaryReader reader) =>
@@ -461,9 +461,9 @@ namespace WorldEdit
 
 			public void Write(BinaryWriter writer)
 			{
-				writer.Write(X);
-				writer.Write(Y);
-				writer.Write(Text);
+				writer.Write((int)X);
+				writer.Write((int)Y);
+				writer.Write((string)Text);
 			}
 
 			public static SignData Read(BinaryReader reader) =>
