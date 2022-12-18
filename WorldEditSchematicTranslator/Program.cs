@@ -66,10 +66,22 @@ internal partial class Program
             }
         }
 
-        int failCounter;
+        int failCounter = 0;
         do
         {
-            TranslateLoop(flags, fromVersion, dir, tempDir, out failCounter);
+            try
+            {
+                TranslateLoop(flags, fromVersion, dir, tempDir, out failCounter);
+            }
+            catch (Exception e)
+            {
+                // Don't end execution if there's a failure in continuous mode
+                if (flags.Continuous)
+                {
+                    Console.WriteLine(e);
+                }
+                else throw;
+            }
             if (flags.Continuous)
             {
                 await Task.Delay(2000);
