@@ -375,7 +375,7 @@ internal partial class Program
         {
             if (DoLog)
                 Console.Error.WriteLine($"[WorldEdit] File '{FileInfo.FullName}' " +
-                    $"could not be converted to Terraria v1.4.4:\n{e}");
+                    $"could not be converted to Terraria v1.4.5:\n{e}");
             translated = false;
         }
 

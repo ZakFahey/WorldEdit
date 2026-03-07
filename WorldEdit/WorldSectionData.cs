@@ -27,11 +27,17 @@ namespace WorldEdit
 
 		public IList<PositionData> TeleportationPylons;
 
-		public IList<DisplayItemsData> DisplayDolls;
+		public IList<DisplayDollData> DisplayDolls;
 
 		public IList<DisplayItemsData> HatRacks;
 
 		public IList<DisplayItemData> FoodPlatters;
+
+		public IList<DisplayItemData> DeadCellsDisplayJars;
+
+		public IList<ItemTypeData> KiteAnchors;
+
+		public IList<ItemTypeData> CritterAnchors;
 
 		public ITile[,] Tiles;
 
@@ -55,9 +61,12 @@ namespace WorldEdit
 			TrainingDummies = new List<PositionData>();
 			WeaponsRacks = new List<DisplayItemData>();
 			TeleportationPylons = new List<PositionData>();
-			DisplayDolls = new List<DisplayItemsData>();
+			DisplayDolls = new List<DisplayDollData>();
 			HatRacks = new List<DisplayItemsData>();
 			FoodPlatters = new List<DisplayItemData>();
+			DeadCellsDisplayJars = new List<DisplayItemData>();
+			KiteAnchors = new List<ItemTypeData>();
+			CritterAnchors = new List<ItemTypeData>();
 			Tiles = new ITile[width, height];
 		}
 
@@ -103,7 +112,7 @@ namespace WorldEdit
 							var frame = (TEItemFrame)TileEntity.ByID[id];
 							ItemFrames.Add(new DisplayItemData()
 							{
-								Item = new NetItem(frame.item.netID, frame.item.stack, frame.item.prefix),
+								Item = new NetItem(frame.item.type, frame.item.stack, frame.item.prefix),
 								X = x,
 								Y = y
 							});
@@ -120,7 +129,7 @@ namespace WorldEdit
 							var chest = Main.chest[id];
 							if (chest.item != null)
 							{
-								var items = chest.item.Select(item => new NetItem(item.netID, item.stack, item.prefix)).ToArray();
+								var items = chest.item.Select(item => new NetItem(item.type, item.stack, item.prefix)).ToArray();
 								Chests.Add(new ChestData()
 								{
 									Items = items,
@@ -169,7 +178,7 @@ namespace WorldEdit
 							var rack = (TEWeaponsRack)TileEntity.ByID[id];
 							WeaponsRacks.Add(new DisplayItemData()
 							{
-								Item = new NetItem(rack.item.netID, rack.item.stack, rack.item.prefix),
+								Item = new NetItem(rack.item.type, rack.item.stack, rack.item.prefix),
 								X = x,
 								Y = y,
 							});
@@ -197,10 +206,12 @@ namespace WorldEdit
 						if (id != -1)
 						{
 							var doll = (TEDisplayDoll)TileEntity.ByID[id];
-							DisplayDolls.Add(new DisplayItemsData()
+							DisplayDolls.Add(new DisplayDollData()
 							{
-								Items = doll._items.Select(i => new NetItem(i.netID, i.stack, i.prefix)).ToArray(),
-								Dyes = doll._dyes.Select(i => new NetItem(i.netID, i.stack, i.prefix)).ToArray(),
+								Items = doll.Equipment.Select(i => new NetItem(i.type, i.stack, i.prefix)).ToArray(),
+								Dyes = doll._dyes.Select(i => new NetItem(i.type, i.stack, i.prefix)).ToArray(),
+								Misc = doll._misc.Select(i => new NetItem(i.type, i.stack, i.prefix)).ToArray(),
+								Pose = doll._pose,
 								X = x,
 								Y = y
 							});
@@ -216,8 +227,8 @@ namespace WorldEdit
 							var rack = (TEHatRack)TileEntity.ByID[id];
 							HatRacks.Add(new DisplayItemsData()
 							{
-								Items = rack._items.Select(i => new NetItem(i.netID, i.stack, i.prefix)).ToArray(),
-								Dyes = rack._dyes.Select(i => new NetItem(i.netID, i.stack, i.prefix)).ToArray(),
+								Items = rack._items.Select(i => new NetItem(i.type, i.stack, i.prefix)).ToArray(),
+								Dyes = rack._dyes.Select(i => new NetItem(i.type, i.stack, i.prefix)).ToArray(),
 								X = x,
 								Y = y
 							});
@@ -232,7 +243,50 @@ namespace WorldEdit
 							var platter = (TEFoodPlatter)TileEntity.ByID[id];
 							FoodPlatters.Add(new DisplayItemData()
 							{
-								Item = new NetItem(platter.item.netID, platter.item.stack, platter.item.prefix),
+								Item = new NetItem(platter.item.type, platter.item.stack, platter.item.prefix),
+								X = x,
+								Y = y
+							});
+						}
+					}
+					break;
+				case TileID.DeadCellsDisplayJar:
+					if (tile.frameX % 36 == 0 && tile.frameY == 0)
+					{
+						if (TileEntity.ByPosition.TryGetValue(new Point16(actualX, actualY), out var jarEntity)
+							&& jarEntity is TEDeadCellsDisplayJar jar)
+						{
+							DeadCellsDisplayJars.Add(new DisplayItemData()
+							{
+								Item = new NetItem(jar.item.type, jar.item.stack, jar.item.prefix),
+								X = x,
+								Y = y
+							});
+						}
+					}
+					break;
+				case TileID.KiteAnchor:
+					{
+						if (TileEntity.ByPosition.TryGetValue(new Point16(actualX, actualY), out var kiteEntity)
+							&& kiteEntity is TEKiteAnchor kite)
+						{
+							KiteAnchors.Add(new ItemTypeData()
+							{
+								ItemType = GetLeashedItemType(kite),
+								X = x,
+								Y = y
+							});
+						}
+					}
+					break;
+				case TileID.CritterAnchor:
+					{
+						if (TileEntity.ByPosition.TryGetValue(new Point16(actualX, actualY), out var critterEntity)
+							&& critterEntity is TECritterAnchor critter)
+						{
+							CritterAnchors.Add(new ItemTypeData()
+							{
+								ItemType = GetLeashedItemType(critter),
 								X = x,
 								Y = y
 							});
@@ -287,6 +341,18 @@ namespace WorldEdit
 			writer.Write((int)FoodPlatters.Count);
 			foreach (var foodPlatter in FoodPlatters)
 				foodPlatter.Write(writer);
+
+			writer.Write((int)DeadCellsDisplayJars.Count);
+			foreach (var jar in DeadCellsDisplayJars)
+				jar.Write(writer);
+
+			writer.Write((int)KiteAnchors.Count);
+			foreach (var kiteAnchor in KiteAnchors)
+				kiteAnchor.Write(writer);
+
+			writer.Write((int)CritterAnchors.Count);
+			foreach (var critterAnchor in CritterAnchors)
+				critterAnchor.Write(writer);
 		}
 
 		public void Write(Stream stream)
@@ -305,9 +371,9 @@ namespace WorldEdit
 		}
 
 		public void WriteHeader(BinaryWriter writer)
-        {
-            writer.Write((int)3);
-            writer.Write((int)0);
+		{
+			writer.Write((int)4);
+			writer.Write((int)0);
             writer.Write((int)X);
             writer.Write((int)Y);
 			writer.Write((int)Width);
@@ -318,9 +384,9 @@ namespace WorldEdit
 		{
 			Stream stream = File.Open(filePath, FileMode.Create);
 			using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
-            {
-                writer.Write((int)3);
-                writer.Write((int)0);
+			{
+				writer.Write((int)4);
+				writer.Write((int)0);
                 writer.Write((int)x);
 				writer.Write((int)y);
 				writer.Write((int)width);
@@ -380,6 +446,42 @@ namespace WorldEdit
 					Y = reader.ReadInt32(),
 					Items = reader.ReadNetItems(),
 					Dyes = reader.ReadNetItems()
+				};
+		}
+
+		public struct DisplayDollData
+		{
+			public int X;
+
+			public int Y;
+
+			public NetItem[] Items;
+
+			public NetItem[] Dyes;
+
+			public NetItem[] Misc;
+
+			public byte Pose;
+
+			public void Write(BinaryWriter writer)
+			{
+				writer.Write((int)X);
+				writer.Write((int)Y);
+				writer.Write((NetItem[])Items);
+				writer.Write((NetItem[])Dyes);
+				writer.Write((NetItem[])Misc);
+				writer.Write((byte)Pose);
+			}
+
+			public static DisplayDollData Read(BinaryReader reader) =>
+				new DisplayDollData()
+				{
+					X = reader.ReadInt32(),
+					Y = reader.ReadInt32(),
+					Items = reader.ReadNetItems(),
+					Dyes = reader.ReadNetItems(),
+					Misc = reader.ReadNetItems(),
+					Pose = reader.ReadByte()
 				};
 		}
 
@@ -473,6 +575,40 @@ namespace WorldEdit
 					Y = reader.ReadInt32(),
 					Text = reader.ReadString()
 				};
+		}
+
+		public struct ItemTypeData
+		{
+			public int X;
+
+			public int Y;
+
+			public int ItemType;
+
+			public void Write(BinaryWriter writer)
+			{
+				writer.Write((int)X);
+				writer.Write((int)Y);
+				writer.Write((int)ItemType);
+			}
+
+			public static ItemTypeData Read(BinaryReader reader) =>
+				new ItemTypeData()
+				{
+					X = reader.ReadInt32(),
+					Y = reader.ReadInt32(),
+					ItemType = reader.ReadInt32()
+				};
+		}
+
+		private static int GetLeashedItemType(TELeashedEntityAnchorWithItem entity)
+		{
+			using var ms = new MemoryStream();
+			using var bw = new BinaryWriter(ms);
+			entity.WriteExtraData(bw, false);
+			ms.Position = 0;
+			using var br = new BinaryReader(ms);
+			return (int)br.ReadInt16();
 		}
 	}
 }

@@ -279,6 +279,26 @@ namespace WorldEdit
 		{
 #warning TODO: run translator
 		}
+
+		private void EnsureTableStructure()
+		{
+			bool isSqlite = TShock.Config.Settings.StorageType.Equals("sqlite", StringComparison.OrdinalIgnoreCase);
+
+			string createTableQuery = isSqlite
+				? @"CREATE TABLE IF NOT EXISTS WorldEdit (
+					Account INTEGER PRIMARY KEY,
+					RedoLevel INTEGER,
+					UndoLevel INTEGER
+				);"
+				: @"CREATE TABLE IF NOT EXISTS WorldEdit (
+					Account INT PRIMARY KEY,
+					RedoLevel INT,
+					UndoLevel INT
+				);";
+
+			Database.Query(createTableQuery);
+		}
+
 		private void OnInitialize(EventArgs e)
 		{
 			var lockFilePathOldVersion = Path.Combine(WorldEditFolderName, "deleted.lock");
@@ -565,12 +585,7 @@ namespace WorldEdit
 			}
 			#endregion
 
-			var sqlcreator = new SqlTableCreator(Database,
-				Database.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
-			sqlcreator.EnsureTableStructure(new SqlTable("WorldEdit",
-				new SqlColumn("Account", MySqlDbType.Int32) { Primary = true },
-				new SqlColumn("RedoLevel", MySqlDbType.Int32),
-				new SqlColumn("UndoLevel", MySqlDbType.Int32)));
+			EnsureTableStructure();
 			#endregion
 
             #region Biomes

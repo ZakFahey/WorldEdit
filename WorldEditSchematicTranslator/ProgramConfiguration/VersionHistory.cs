@@ -29,6 +29,15 @@ internal partial class Program
 
     #endregion
     private static Version V3_0 = null!;
+    #region [Summary]
+
+    /// <summary>
+    ///     [<u><i>2025</i></u>] &lt;Terraria v1.4.5&gt;
+    ///         v<b><see langword="4.0"/></b> - <b>"1.4.5 Terraria update; New tile entities"</b>
+    /// </summary>
+
+    #endregion
+    private static Version V4_0 = null!;
     private static Dictionary<Version, Version> History = null!;
     private static Version LastVersion = null!;
     private static void InitializeVersionHistory()
@@ -38,6 +47,7 @@ internal partial class Program
             [V1_0 = new(1, 0)] = new(1, 3, 5),
             [V2_0 = new(2, 0)] = new(1, 4, 0),
             [V3_0 = new(3, 0)] = new(1, 4, 4),
+            [V4_0 = new(4, 0)] = new(1, 4, 5),
         };
         LastVersion = History.Keys.Max()!;
     }
