@@ -137,7 +137,7 @@ namespace WorldEdit
             int x, y, width, height;
             using (var reader = new BinaryReader(stream, System.Text.Encoding.UTF8, true))
             {
-                if (new Version(reader.ReadInt32(), reader.ReadInt32()) != new Version(3, 0))
+                if (new Version(reader.ReadInt32(), reader.ReadInt32()) != new Version(4, 0))
                     throw new InvalidOperationException($"Schematic is not translated to latest version.");
                 x = reader.ReadInt32();
                 y = reader.ReadInt32();
@@ -218,10 +218,10 @@ namespace WorldEdit
                     }
 
                     var displayDollsCount = reader.ReadInt32();
-                    worldData.DisplayDolls = new WorldSectionData.DisplayItemsData[displayDollsCount];
+                    worldData.DisplayDolls = new WorldSectionData.DisplayDollData[displayDollsCount];
                     for (var i = 0; i < displayDollsCount; i++)
                     {
-                        worldData.DisplayDolls[i] = WorldSectionData.DisplayItemsData.Read(reader);
+                        worldData.DisplayDolls[i] = WorldSectionData.DisplayDollData.Read(reader);
                     }
 
                     var hatRacksCount = reader.ReadInt32();
@@ -236,6 +236,32 @@ namespace WorldEdit
                     for (var i = 0; i < foodPlattersCount; i++)
                     {
                         worldData.FoodPlatters[i] = WorldSectionData.DisplayItemData.Read(reader);
+                    }
+                }
+                catch (EndOfStreamException) // old version file
+                { }
+
+                try
+                {
+                    var deadCellsDisplayJarsCount = reader.ReadInt32();
+                    worldData.DeadCellsDisplayJars = new WorldSectionData.DisplayItemData[deadCellsDisplayJarsCount];
+                    for (var i = 0; i < deadCellsDisplayJarsCount; i++)
+                    {
+                        worldData.DeadCellsDisplayJars[i] = WorldSectionData.DisplayItemData.Read(reader);
+                    }
+
+                    var kiteAnchorsCount = reader.ReadInt32();
+                    worldData.KiteAnchors = new WorldSectionData.ItemTypeData[kiteAnchorsCount];
+                    for (var i = 0; i < kiteAnchorsCount; i++)
+                    {
+                        worldData.KiteAnchors[i] = WorldSectionData.ItemTypeData.Read(reader);
+                    }
+
+                    var critterAnchorsCount = reader.ReadInt32();
+                    worldData.CritterAnchors = new WorldSectionData.ItemTypeData[critterAnchorsCount];
+                    for (var i = 0; i < critterAnchorsCount; i++)
+                    {
+                        worldData.CritterAnchors[i] = WorldSectionData.ItemTypeData.Read(reader);
                     }
                 }
                 catch (EndOfStreamException) // old version file
@@ -314,7 +340,7 @@ namespace WorldEdit
             {
                 if (chest == null) continue;
                 if (area.Contains(chest.x, chest.y)
-                    && (!emptyOnly || chest.item.All(i => (i?.netID == 0))))
+                    && (!emptyOnly || chest.item.All(i => (i?.type == 0))))
                 {
                     chests++;
                     Chest.DestroyChest(chest.x, chest.y);
@@ -347,6 +373,9 @@ namespace WorldEdit
                     { TEHatRack.Kill(i, j); }
                     if (TEFoodPlatter.Find(i, j) != -1)
                     { TEFoodPlatter.Kill(i, j); }
+                    if (TileEntity.ByPosition.TryGetValue(new Point16(i, j), out var te)
+                        && (te is TEDeadCellsDisplayJar || te is TEKiteAnchor || te is TECritterAnchor))
+                    { TileEntity.Kill(i, j, te.type); }
                 }
             }
         }
@@ -461,7 +490,6 @@ namespace WorldEdit
                 var doll = (TEDisplayDoll)TileEntity.ByID[id];
                 if (!InMapBoundaries(doll.Position.X, doll.Position.Y))
                 { continue; }
-                doll._items = new Item[displayDoll.Items.Length];
                 for (int i = 0; i < displayDoll.Items.Length; i++)
                 {
                     var netItem = displayDoll.Items[i];
@@ -469,7 +497,7 @@ namespace WorldEdit
                     item.netDefaults(netItem.NetId);
                     item.stack = netItem.Stack;
                     item.prefix = netItem.PrefixId;
-                    doll._items[i] = item;
+                    doll.Equipment[i] = item;
                 }
                 doll._dyes = new Item[displayDoll.Dyes.Length];
                 for (int i = 0; i < displayDoll.Dyes.Length; i++)
@@ -481,6 +509,17 @@ namespace WorldEdit
                     item.prefix = netItem.PrefixId;
                     doll._dyes[i] = item;
                 }
+                doll._misc = new Item[displayDoll.Misc.Length];
+                for (int i = 0; i < displayDoll.Misc.Length; i++)
+                {
+                    var netItem = displayDoll.Misc[i];
+                    var item = new Item();
+                    item.netDefaults(netItem.NetId);
+                    item.stack = netItem.Stack;
+                    item.prefix = netItem.PrefixId;
+                    doll._misc[i] = item;
+                }
+                doll._pose = displayDoll.Pose;
             }
 
             foreach (var hatRack in Data.HatRacks)
@@ -525,6 +564,42 @@ namespace WorldEdit
                 platter.item.netDefaults(foodPlatter.Item.NetId);
                 platter.item.stack = foodPlatter.Item.Stack;
                 platter.item.prefix = foodPlatter.Item.PrefixId;
+            }
+
+            foreach (var jar in Data.DeadCellsDisplayJars)
+            {
+                var id = TileEntity.Place(jar.X + x, jar.Y + y, new TEDeadCellsDisplayJar().type);
+                if (id == -1) { continue; }
+
+                var jarEntity = (TEDeadCellsDisplayJar)TileEntity.ByID[id];
+                if (!InMapBoundaries(jarEntity.Position.X, jarEntity.Position.Y))
+                { continue; }
+                jarEntity.item = new Item();
+                jarEntity.item.netDefaults(jar.Item.NetId);
+                jarEntity.item.stack = jar.Item.Stack;
+                jarEntity.item.prefix = jar.Item.PrefixId;
+            }
+
+            foreach (var kiteAnchor in Data.KiteAnchors)
+            {
+                var id = TileEntity.Place(kiteAnchor.X + x, kiteAnchor.Y + y, new TEKiteAnchor().type);
+                if (id == -1) { continue; }
+                var anchor = (TEKiteAnchor)TileEntity.ByID[id];
+                if (!InMapBoundaries(anchor.Position.X, anchor.Position.Y))
+                { continue; }
+                if (kiteAnchor.ItemType > 0)
+                    anchor.InsertItem(kiteAnchor.ItemType);
+            }
+
+            foreach (var critterAnchor in Data.CritterAnchors)
+            {
+                var id = TileEntity.Place(critterAnchor.X + x, critterAnchor.Y + y, new TECritterAnchor().type);
+                if (id == -1) { continue; }
+                var anchor = (TECritterAnchor)TileEntity.ByID[id];
+                if (!InMapBoundaries(anchor.Position.X, anchor.Position.Y))
+                { continue; }
+                if (critterAnchor.ItemType > 0)
+                    anchor.InsertItem(critterAnchor.ItemType);
             }
 
             ResetSection(x, y, x + Data.Width, y + Data.Height);

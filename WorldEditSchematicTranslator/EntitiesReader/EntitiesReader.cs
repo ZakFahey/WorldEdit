@@ -7,13 +7,17 @@ internal partial class Program
         private sealed class EntitiesReaderEnumerator : IEnumerator<EntityReaderState>
         {
             private readonly BinaryReader BinaryReader;
+            private readonly bool UseOldMannequinFormat;
             private EntityReaderState Curr = new();
             public EntityReaderState Current => Curr;
             object System.Collections.IEnumerator.Current => Curr;
-            public EntitiesReaderEnumerator(BinaryReader BinaryReader) =>
+            public EntitiesReaderEnumerator(BinaryReader BinaryReader, bool useOldMannequinFormat)
+            {
                 this.BinaryReader = BinaryReader;
+                this.UseOldMannequinFormat = useOldMannequinFormat;
+            }
 
-            private bool NextType() => (++Curr.Type <= EntityType.FoodPlate);
+            private bool NextType() => (++Curr.Type <= EntityType.CritterAnchor);
             public bool MoveNext()
             {
                 if (!Curr.Read)
@@ -45,9 +49,14 @@ internal partial class Program
                         EntityType.TargetDummy => EmptyData.Instance.Read(BinaryReader),
                         EntityType.WeaponRack => DisplayItemData.Instance.Read(BinaryReader),
                         EntityType.Pylon => EmptyData.Instance.Read(BinaryReader),
-                        EntityType.Mannequin => DisplayItemsData.Instance.Read(BinaryReader),
+                        EntityType.Mannequin => UseOldMannequinFormat
+                            ? DisplayDollData.FromOldFormat((DisplayItemsData)DisplayItemsData.Instance.Read(BinaryReader))
+                            : DisplayDollData.Instance.Read(BinaryReader),
                         EntityType.HatRack => DisplayItemsData.Instance.Read(BinaryReader),
                         EntityType.FoodPlate => DisplayItemData.Instance.Read(BinaryReader),
+                        EntityType.DeadCellsDisplayJar => DisplayItemData.Instance.Read(BinaryReader),
+                        EntityType.KiteAnchor => ItemTypeData.Instance.Read(BinaryReader),
+                        EntityType.CritterAnchor => ItemTypeData.Instance.Read(BinaryReader),
                         _ => throw new NotImplementedException()
                     });
                     Curr.ReadCount++;
@@ -62,8 +71,8 @@ internal partial class Program
         #region Ienumerable realization
 
         private readonly EntitiesReaderEnumerator Enumerator;
-        public EntitiesReader(BinaryReader BinaryReader) =>
-            Enumerator = new(BinaryReader);
+        public EntitiesReader(BinaryReader BinaryReader, bool useOldMannequinFormat = false) =>
+            Enumerator = new(BinaryReader, useOldMannequinFormat);
 
         public IEnumerator<EntityReaderState> GetEnumerator() => Enumerator;
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => Enumerator;

@@ -10,12 +10,13 @@ internal partial class Program
         {
             [V1_0] = true,
             [V2_0] = false,
-            [V3_0] = false
+            [V3_0] = false,
+            [V4_0] = false
         };
         ReadHeader = new();
         ReadHeader[V1_0] = ReadHeader[V2_0] = ((_, br) => new(br.ReadInt32(), br.ReadInt32(),
                                                               br.ReadInt32(), br.ReadInt32()));
-        ReadHeader[V3_0] = ((fromVersion, br) =>
+        ReadHeader[V3_0] = ReadHeader[V4_0] = ((fromVersion, br) =>
         {
             Version fileVersion = new(br.ReadInt32(), br.ReadInt32());
             if (fileVersion != fromVersion)

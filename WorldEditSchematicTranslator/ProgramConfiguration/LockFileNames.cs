@@ -11,13 +11,15 @@ internal partial class Program
         {
             [V1_0] = "1.4.0.lock",
             [V2_0] = "1.4.4.lock",
-            [V3_0] = null
+            [V3_0] = "1.4.5.lock",
+            [V4_0] = null
         };
         LockFileContent = new()
         {
             [V1_0] = null,
             [V2_0] = "Terraria_V1.4.4.9",
-            [V3_0] = null
+            [V3_0] = null,
+            [V4_0] = null
         };
     }
 }

@@ -92,6 +92,33 @@ internal partial class Program
             tile.wall = br.ReadUInt16();
             tile.liquid = br.ReadByte();
             return tile;
+        }),
+
+        #endregion
+        #region V4_0
+
+        [V4_0] = (br =>
+        {
+            Tile tile = new()
+            {
+                sTileHeader = br.ReadUInt16(),
+                bTileHeader = br.ReadByte(),
+                bTileHeader2 = br.ReadByte(),
+                bTileHeader3 = br.ReadByte()
+            };
+
+            if (tile.active())
+            {
+                tile.type = br.ReadUInt16();
+                if (TileFrameImportant[V4_0][tile.type])
+                {
+                    tile.frameX = br.ReadInt16();
+                    tile.frameY = br.ReadInt16();
+                }
+            }
+            tile.wall = br.ReadUInt16();
+            tile.liquid = br.ReadByte();
+            return tile;
         })
 
         #endregion
