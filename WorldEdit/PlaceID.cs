@@ -22,6 +22,7 @@ namespace WorldEdit
                 && magicWand.InSelection(x, y);
         }
         void SetTile(int x, int y);
+        void SwapTile(int x, int y);
     }
     public interface TilePlaceID : PlaceID { }
     public enum LiquidKind
@@ -46,6 +47,10 @@ namespace WorldEdit
             tile.liquidType(0);
             tile.liquid = 0;
             tile.type = 0;
+        }
+        public void SwapTile(int x, int y)
+        {
+            SetTile(x, y);
         }
     }
     public readonly record struct LiquidPlaceID(LiquidKind kind) : TilePlaceID
@@ -93,6 +98,11 @@ namespace WorldEdit
             tile.liquid = 255;
             tile.type = 0;
         }
+
+        public void SwapTile(int x, int y)
+        {
+            SetTile(x, y);
+        }
     }
     public readonly record struct BlockPlaceID(int tileID, int placeStyle, string name) : TilePlaceID
     {
@@ -120,7 +130,19 @@ namespace WorldEdit
 			{
 				Main.tile[x, y].frameX = (short)(18 * placeStyle);
 			}
-			#endregion
+            #endregion
+        }
+
+        public void SwapTile(int x, int y)
+        {
+            if (Main.tile[x, y].active())
+            {
+                Main.tile[x, y].type = (ushort)tileID;
+            }
+            else
+            {
+                SetTile(x, y);
+            }
         }
     }
     public readonly record struct WallPlaceID(int wallID, string name) : PlaceID
@@ -138,6 +160,10 @@ namespace WorldEdit
         public void SetTile(int x, int y)
         {
             Main.tile[x, y].wall = (ushort)wallID;
+        }
+        public void SwapTile(int x, int y)
+        {
+            SetTile(x, y);
         }
     }
 }
