@@ -30,7 +30,7 @@ namespace WorldEdit.Commands
                     ITile tile = Main.tile[i, j];
                     if (from.Is(tile) && to.CanSet(tile, select, expression, magicWand, i, j, plr))
                     {
-                        to.SetTile(i, j);
+                        to.SwapTile(i, j);
                         edits++;
                     }
                 }
